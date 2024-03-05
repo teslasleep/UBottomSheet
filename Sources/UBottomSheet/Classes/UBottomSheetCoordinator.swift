@@ -24,8 +24,8 @@ public class UBottomSheetCoordinator: NSObject {
         }
     }
     public weak var delegate: UBottomSheetCoordinatorDelegate?
-    private var minSheetPosition: CGFloat?
-    private var maxSheetPosition: CGFloat?
+    public var minSheetPosition: CGFloat?
+    public var maxSheetPosition: CGFloat?
     ///View controllers which conform to Draggable protocol
     public var draggables: [DraggableItem] = []
     ///Drop shadow view behind container.
