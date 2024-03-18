@@ -38,7 +38,10 @@ public class UBottomSheetCoordinator: NSObject {
     public var availableHeight: CGFloat {
         return parent.view.frame.height
     }
-    
+    /// Swipe down/up velocity limits
+    public var draggingUpVelocityLimit: CGFloat = -500
+    public var draggingDownVelocityLimit: CGFloat = 500
+
     private var cornerRadius: CGFloat = 0 {
         didSet {
             applyDefaultShadowParams()
@@ -511,7 +514,7 @@ public class UBottomSheetCoordinator: NSObject {
      - parameter currentPosition: current top constraint value of container view
      */
     private func filteredPositions(_ velocity: CGPoint, currentPosition: CGFloat) -> [CGFloat] {
-        if velocity.y < -100 { /// dragging up
+        if velocity.y < draggingUpVelocityLimit { /// dragging up
             let data = dataSource.sheetPositions(availableHeight).filter { (p) -> Bool in
                 p < currentPosition
             }
@@ -521,7 +524,7 @@ public class UBottomSheetCoordinator: NSObject {
             } else {
                 return data
             }
-        } else if velocity.y > 100 { /// dragging down
+        } else if velocity.y > draggingDownVelocityLimit { /// dragging down
             let data = dataSource.sheetPositions(availableHeight).filter { (p) -> Bool in
                 p > currentPosition
             }
