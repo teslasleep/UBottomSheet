@@ -35,6 +35,10 @@ public class UBottomSheetCoordinator: NSObject {
     ///set true if sheet view controller is embedded in a UINavigationController
     public var usesNavigationController: Bool = false
 
+    /// Set to 'false' if the sheet view controller should not be removed after dismissing.
+    /// Default value: 'true'
+    public var removeDismissedSheet: Bool = true
+
     public var availableHeight: CGFloat {
         return parent.view.frame.height
     }
@@ -290,7 +294,31 @@ public class UBottomSheetCoordinator: NSObject {
          let y = dataSource.sheetPositions(availableHeight).nearest(to: pos)
          setPosition(y, animated: animated)
      }
-    
+
+    /**
+     Present the sheet to its maximum position or to the top of the screen.
+
+     - parameter animated: pass true to animate sheet position change; false otherwise.
+     Default value is: true
+
+    */
+    public func presentSheet(_ animated: Bool = true) {
+        let y: CGFloat = self.minSheetPosition ?? .zero
+        self.setPosition(y, animated: animated)
+    }
+
+    /**
+     Dismiss the sheet to the minimum sheet position or to the bottom of the screen.
+
+     - parameter animated: pass true to animate sheet position change; false otherwise.
+     Default value is: true
+
+    */
+    public func dismissSheet(_ animated: Bool = true) {
+        let y: CGFloat = self.maxSheetPosition ?? self.parent.view.frame.height
+        self.setPosition(y, animated: animated)
+    }
+
     /**
      Remove child view controller from the container.
      
@@ -321,15 +349,23 @@ public class UBottomSheetCoordinator: NSObject {
             block?(container)
             return
         }
+        let y: CGFloat = self.minSheetPosition ?? self.parent.view.frame.height
+        let state = SheetTranslationState.finished(y, self.calculatePercent(at: y))
+        self.delegate?.bottomSheet(self.container, willDismiss: state)
+
         UIView.animate(withDuration: 0.3, animations: { [weak self] in
+            guard let container = self?.container else {
+                return
+            }
+            container.frame = container.frame.offsetBy(dx: 0, dy:  y)
+        }) { [weak self ] finished in
             guard let sSelf = self else {
                 return
             }
-            sSelf.container!.frame = sSelf.container!.frame.offsetBy(dx: 0, dy:  sSelf.parent.view.frame.height)
-        }) { [weak self ] finished in
-            self?.container?.removeFromSuperview()
-            self?.removeDropShadow()
+            sSelf.container?.removeFromSuperview()
+            sSelf.removeDropShadow()
             completion?(finished)
+            sSelf.delegate?.bottomSheet(sSelf.container, didDismiss: state)
         }
     }
     
@@ -608,7 +644,8 @@ public class UBottomSheetCoordinator: NSObject {
             return
         }
         let oldFrame = container!.frame
-        let height = max(availableHeight - minSheetPosition!, availableHeight - position)
+        let availableHeight: CGFloat = self.availableHeight
+        let height = max(availableHeight - self.minSheetPosition!, availableHeight - position)
         let frame = CGRect(x: 0, y: position, width: oldFrame.width, height: height)
 
         self.delegate?.bottomSheet(self.container,
@@ -624,6 +661,14 @@ public class UBottomSheetCoordinator: NSObject {
                 sSelf.delegate?.bottomSheet(sSelf.container, finishTranslateWith: { (anim) in
                     anim(sSelf.calculatePercent(at: position))
                 })
+
+                let percent = sSelf.calculatePercent(at: position)
+
+                if percent <= .zero {
+                    let state = SheetTranslationState.finished(position, percent)
+                    sSelf.delegate?.bottomSheet(sSelf.container, willDismiss: state)
+                }
+
                 sSelf.container!.frame = frame
                 sSelf.parent.view.layoutIfNeeded()
             }, completion: { [weak self] finished in
@@ -634,10 +679,17 @@ public class UBottomSheetCoordinator: NSObject {
                 if sSelf.lastAnimatedValue != position {
                     return
                 }
-                sSelf.delegate?.bottomSheet(sSelf.container,
-                                            didChange: .finished(position, sSelf.calculatePercent(at: position)))
-                if position >= sSelf.availableHeight {
-                    sSelf.removeSheet()
+
+                let percent = sSelf.calculatePercent(at: position)
+                let state = SheetTranslationState.finished(position, percent)
+
+                sSelf.delegate?.bottomSheet(sSelf.container, didChange: state)
+                if position >= availableHeight {
+                    if sSelf.removeDismissedSheet == true {
+                        sSelf.removeSheet()
+                    } else {
+                        sSelf.delegate?.bottomSheet(sSelf.container, didDismiss: state)
+                    }
                 }
             })
         } else {
