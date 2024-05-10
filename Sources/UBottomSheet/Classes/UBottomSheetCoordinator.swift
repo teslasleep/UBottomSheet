@@ -150,21 +150,21 @@ public class UBottomSheetCoordinator: NSObject {
                          animated: Bool = true,
                          didContainerCreate: ((UIView) -> Void)? = nil,
                          completion: (() -> Void)? = nil) {
-         self.usesNavigationController = item is UINavigationController
-         let container = PassThroughView()
-         self.container = container
-         parent.view.addSubview(container)
-         let position = dataSource.initialPosition(availableHeight)
-         parent.ub_add(item, in: container, animated: animated, topInset: position) { [weak self] in
-             guard let sSelf = self else {
+        self.usesNavigationController = item is UINavigationController
+        let container = PassThroughView()
+        self.container = container
+        parent.view.addSubview(container)
+        let position = dataSource.initialPosition(availableHeight)
+        parent.ub_add(item, in: container, animated: animated, topInset: position) { [weak self] in
+            guard let sSelf = self else {
                 return
-             }
-             sSelf.delegate?.bottomSheet(container,
-                                         didPresent: .finished(position, sSelf.calculatePercent(at: position)))
+            }
+            sSelf.delegate?.bottomSheet(container,
+                                        didPresent: .finished(position, sSelf.calculatePercent(at: position)))
             completion?()
-         }
-         didContainerCreate?(container)
-         setPosition(dataSource.initialPosition(availableHeight), animated: false)
+        }
+        didContainerCreate?(container)
+        self.setPosition(dataSource.initialPosition(self.availableHeight), animated: animated)
      }
     
     /**
